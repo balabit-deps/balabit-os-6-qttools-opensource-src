@@ -19,40 +19,28 @@ no_qwebview_archs := sh4 m68k
 # We override qmake until https://bugreports.qt.io/browse/QTBUG-30735
 # gets solved (FTBFS with -nocache).
 override_dh_auto_configure:
-	qmake 
+	PATH=/opt/qt59/bin/:$(PATH) qmake QT-=opengl QT-=sqlite
 
 override_dh_auto_clean:
 	dh_auto_clean
 	rm -fv .qmake.cache
 	rm -fv debian/qttools5-dev-tools.install
 
-override_dh_auto_build-indep:
-	cd src; qmake
-	dh_auto_build -- -Csrc sub-qdoc sub-qtattributionsscanner
-	cd src/assistant; qmake
-	dh_auto_build -- -Csrc/assistant sub-qhelpgenerator
-	cd src/qdoc; qmake
-	cd src/assistant/help; qmake
-	dh_auto_build -- docs
-
 override_dh_auto_install-arch:
 	dh_auto_install
 	
 	# Remove libtool-like files
-	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.la
+	rm -f debian/tmp/opt/qt59/lib/*.la
 
 	# Remove CMake files for plugins.
-	rm -fv debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/cmake/Qt5Designer/*Plugin.cmake
+	rm -fv debian/tmp/opt/qt59/lib/cmake/Qt5Designer/*Plugin.cmake
 
 override_dh_auto_install-indep:
 	dh_auto_build -- INSTALL_ROOT=$(CURDIR)/debian/tmp install_docs
 
 override_dh_install:
-ifeq ($(DEB_HOST_ARCH),$(findstring $(DEB_HOST_ARCH), $(no_qwebview_archs)))
 	grep -v qwebview debian/qttools5-dev-tools.install.in >> debian/qttools5-dev-tools.install
-else
-	cp debian/qttools5-dev-tools.install.in debian/qttools5-dev-tools.install
-endif
+
 	dh_install --fail-missing
 
 	install -D -p -m0644 src/assistant/assistant/images/assistant-128.png \
@@ -65,5 +53,8 @@ endif
 override_dh_strip:
 	dh_strip -pqttools5-examples --dbgsym-migration='qttools5-examples-dbg (<< 5.7.1-1~)'
 	dh_strip --remaining-packages --dbgsym-migration='qttools5-dbg (<< 5.7.1-1~)'
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l/opt/qt59/lib
 
 override_dh_auto_test-indep:
